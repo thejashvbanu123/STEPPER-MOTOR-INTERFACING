@@ -1,78 +1,325 @@
-# STEPPER MOTOR INTERFACING
+# Automatic Sensor-Based LED Control System Using STM32
 
-## AIM
-To write an assembly language program in 8086 to rotate the motor at different speeds.
+## Aim
 
----
+To interface a digital sensor with an STM32 microcontroller and automatically control an LED according to the sensor output.
 
-## APPARATUS REQUIRED
+## Apparatus Required
 
-| S. No | Item                        | Specification   | Quantity |
-|-------|-----------------------------|-----------------|----------|
-| 1     | Microprocessor kit          | 8086            | 1        |
-| 2     | Power Supply                | +5 V DC, +12 V DC | 1      |
-| 3     | Stepper Motor Interface board | -             | 1        |
-| 4     | Stepper Motor               | -               | 1        |
+| S. No. | Component | Quantity |
+|---:|---|---:|
+| 1 | STM32 development board | 1 |
+| 2 | Digital sensor or push button | 1 |
+| 3 | LED | 1 |
+| 4 | 220–330 Ω resistor | 1 |
+| 5 | Breadboard | 1 |
+| 6 | Jumper wires | As required |
+| 7 | USB cable | 1 |
 
----
+## Algorithm
+~~~
+The sensor continuously detects the required environmental condition.
+The sensor output is given to an STM32 GPIO input pin.
+The STM32 processes the sensor signal.
+If the programmed condition is satisfied, STM32 sets the LED GPIO HIGH.
+Otherwise, it sets the LED GPIO LOW.
+Thus, the LED operates automatically without manual switching.
+~~~
 
-## THEORY
-A motor in which the rotor is able to assume only discrete stationary angular positions is a **stepper motor**. The rotary motion occurs in a stepwise manner from one equilibrium position to the next.  
+## Program
+~~~
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
 
-**Two-phase scheme:** Any two adjacent stator windings are energized. There are two magnetic fields active in quadrature and none of the rotor pole faces can be in direct alignment with the stator poles. A partial but symmetric alignment of the rotor poles is of course possible.
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 
----
+/* USER CODE END Includes */
 
-## ALGORITHM
-For running the stepper motor in clockwise and anticlockwise directions:
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
 
-1. Get the first data from the lookup table.  
-2. Initialize the counter and move data into the accumulator.  
-3. Drive the stepper motor circuitry and introduce delay.  
-4. Decrement the counter. If not zero, repeat from step (iii).  
-5. Repeat the above procedure both for backward and forward directions.  
+/* USER CODE END PTD */
 
----
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
 
-## SWITCHING SEQUENCE OF STEPPER MOTOR
+/* USER CODE END PD */
 
-| Memory Location | A1 | A2 | B1 | B2 | Hex Code |
-|-----------------|----|----|----|----|----------|
-| 1200            | 1  | 0  | 0  | 0  | 09H      |
-| 1201            | 0  | 1  | 0  | 1  | 05H      |
-| 1202            | 0  | 1  | 1  | 0  | 06H      |
-| 1203            | 1  | 0  | 1  | 0  | 0AH      |
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
 
----
+/* USER CODE END PM */
 
-## PROGRAM
+/* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart2;
 
-```asm
-; Stepper Motor Interfacing Program in 8086 Assembly
+/* USER CODE BEGIN PV */
 
-START:   MOV DI, 1200H        ; Initialize memory location to store array
-         MOV CX, 0004H        ; Initialize array size
+/* USER CODE END PV */
 
-DOWN1:   MOV AL, [DI]         ; Copy the first data into AL
-         OUT C0, AL           ; Send it through port address
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
+/* USER CODE BEGIN PFP */
 
-         MOV DX, 1010H        ; Delay subroutine
-L1:      DEC DX
-         JNZ L1
+/* USER CODE END PFP */
 
-         INC DI               ; Go to next memory location
-         LOOP DOWN1           ; Repeat until all data is sent
+/* Private user code ---------------------------------------------------------*/
 
-         JMP START            ; Continuous rotation
 
-         HLT                  ; Stop
+const uint8_t digitCode[10] =
+{
+0x3F, //0
+0x06, //1
+0x5B, //2
+0x4F, //3
+0x66, //4
+0x6D, //5
+0x7D, //6
+0x07, //7
+0x7F, //8
+0x6F //9
+};
 
-DATA:    DB 09H, 05H, 06H, 0AH ; Array of data
-```
-## OUTPUT OF THE PROGRAM:
+void DisplayDigit(uint8_t value)
+{
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, (value & (1<<0)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, (value & (1<<1)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, (value & (1<<2)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, (value & (1<<3)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, (value & (1<<4)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, (value & (1<<5)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, (value & (1<<6)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+/* USER CODE BEGIN 0 */
 
-<img width="702" height="542" alt="image" src="https://github.com/user-attachments/assets/6cc7f8eb-3161-4881-a608-a0538f23d4db" />
+/* USER CODE END 0 */
 
-## RESULT
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
 
-Thus, the assembly language program for rotating the stepper motor in both clockwise and anticlockwise directions was written and verified.
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART2_UART_Init();
+  /* USER CODE BEGIN 2 */
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+	  for(uint8_t i = 0; i < 10; i++)
+	  {
+	  DisplayDigit(digitCode[i]);
+	  HAL_Delay(1000);
+	  }
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LED_GREEN_Pin */
+  GPIO_InitStruct.Pin = LED_GREEN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(LED_GREEN_GPIO_Port, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+#ifdef USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */
+~~~
+## Circuit Diagram
+<img width="762" height="637" alt="image" src="https://github.com/user-attachments/assets/ba37c11d-4d2b-470f-b380-0f8f63ad743e" />
+
+## Result
+
+The digital sensor was successfully interfaced with the STM32 microcontroller. The LED connected to `PA5` turned ON when the sensor input at `PA0` was HIGH and turned OFF when the sensor input was LOW.
